@@ -1,4 +1,7 @@
 import express from 'express';
+import fs from 'fs';
+import YAML from 'yaml';
+import swaggerUi from 'swagger-ui-express';
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
@@ -6,7 +9,16 @@ import adminRoutes from './routes/adminRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const openapiFile = fs.readFileSync(
+  new URL('../openapi.yaml', import.meta.url),
+  'utf8',
+);
+const openapiSpec = YAML.parse(openapiFile);
+
 app.use(express.json());
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+app.get('/', (req, res) => res.redirect('/api-docs'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);

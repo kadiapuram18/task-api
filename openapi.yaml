@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: Task API
+  version: 1.0.0
+  description: A simple task management API with authentication.
+servers:
+  - url: /api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Finish homework
+        completed:
+          type: boolean
+          example: false
+        userId:
+          type: integer
+          example: 1
+    NewTask:
+      type: object
+      required: [title, completed]
+      properties:
+        title:
+          type: string
+          minLength: 5
+          example: Finish homework
+        completed:
+          type: boolean
+          example: false
+    UpdateTask:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 5
+        completed:
+          type: boolean
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: test1@example.com
+        password:
+          type: string
+          minLength: 8
+          example: password123
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+paths:
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: Create a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '201':
+          description: User created
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and receive an access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          description: Invalid credentials
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: Get tasks for the logged-in user
+      description: Returns all tasks, or only completed / incomplete tasks when the completed query parameter is provided.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: completed
+          in: query
+          required: false
+          description: Filter by completion status. Use true for completed tasks, false for incomplete tasks. Omit to return all tasks.
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid value for the completed query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Errors'
+        '401':
+          description: Not authenticated
+    post:
+      tags: [Tasks]
+      summary: Create a new task
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTask'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Validation error
+        '401':
+          description: Not authenticated
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags: [Tasks]
+      summary: Get a task by ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+    put:
+      tags: [Tasks]
+      summary: Update a task by ID
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTask'
+      responses:
+        '200':
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+    delete:
+      tags: [Tasks]
+      summary: Delete a task by ID
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Task deleted
+        '404':
+          description: Task not found
