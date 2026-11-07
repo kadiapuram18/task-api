@@ -8,6 +8,7 @@ import {
 } from '../middleware/validators.js';
 import {
   createTaskHandler,
+  getAllTasksHandler,
   getMyTasksHandler,
   getTaskByIdHandler,
   updateTaskByIdHandler,
@@ -16,7 +17,20 @@ import {
 
 const router = express.Router();
 
-router.get('/', authenticate, validateTaskQuery, getMyTasksHandler);
+// GET /tasks: check ?completed first (400 if invalid).
+// No token -> return all tasks. With token -> return only the user's tasks.
+router.get(
+  '/',
+  validateTaskQuery,
+  (req, res, next) => {
+    if (!req.headers.authorization) {
+      return getAllTasksHandler(req, res, next);
+    }
+    next();
+  },
+  authenticate,
+  getMyTasksHandler,
+);
 
 router.post('/', authenticate, validateCreateTask, createTaskHandler);
 
